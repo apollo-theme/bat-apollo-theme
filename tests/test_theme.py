@@ -25,6 +25,12 @@ class ApolloBatThemeTests(unittest.TestCase):
         self.assertEqual((ROOT / "Apollo.tmTheme").read_bytes(), generate.render(generate.load_palette()))
         check.validate_plist()
 
+    def test_documented_uninstall_preserves_unowned_or_modified_theme(self) -> None:
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn('.installed-theme-path', readme)
+        self.assertIn('cmp -s "$installed_theme" "$clone_dir/Apollo.tmTheme"', readme)
+        self.assertNotIn('rm -f "$theme_dir/Apollo.tmTheme"', readme)
+
     @unittest.skipUnless(shutil.which("bat"), "bat is not installed")
     def test_isolated_bat_cache_builds_and_renders(self) -> None:
         check.validate_bat()

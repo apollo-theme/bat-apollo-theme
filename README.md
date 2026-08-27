@@ -11,11 +11,13 @@ Clone the repository, then copy the theme only if that destination is unused:
 ```sh
 git clone https://github.com/apollo-theme/bat-apollo-theme "$HOME/.config/bat-apollo-theme"
 theme_dir="$(bat --config-dir)/themes"
+marker="$HOME/.config/bat-apollo-theme/.installed-theme-path"
 mkdir -p "$theme_dir"
 if [ -e "$theme_dir/Apollo.tmTheme" ]; then
   printf '%s\n' 'Apollo.tmTheme already exists; nothing was overwritten.'
 else
   cp "$HOME/.config/bat-apollo-theme/Apollo.tmTheme" "$theme_dir/Apollo.tmTheme"
+  printf '%s\n' "$theme_dir/Apollo.tmTheme" > "$marker"
   bat cache --build
 fi
 ```
@@ -33,11 +35,21 @@ Or opt in for the current shell with `export BAT_THEME=Apollo`. No bat config fi
 ## Uninstall
 
 ```sh
-theme_dir="$(bat --config-dir)/themes"
-rm -f "$theme_dir/Apollo.tmTheme"
-bat cache --build
+clone_dir="$HOME/.config/bat-apollo-theme"
+marker="$clone_dir/.installed-theme-path"
+if [ -f "$marker" ]; then
+  installed_theme="$(cat "$marker")"
+  expected_theme="$(bat --config-dir)/themes/Apollo.tmTheme"
+  if [ "$installed_theme" = "$expected_theme" ] &&
+     cmp -s "$installed_theme" "$clone_dir/Apollo.tmTheme"; then
+    rm -f "$installed_theme"
+    bat cache --build
+  else
+    printf '%s\n' 'Apollo.tmTheme was not installed by this clone or has changed; it was preserved.'
+  fi
+fi
 unset BAT_THEME
-rm -rf "$HOME/.config/bat-apollo-theme"
+rm -rf "$clone_dir"
 ```
 
 ## Visual check
