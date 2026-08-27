@@ -48,7 +48,12 @@ def validate_bat() -> None:
         shutil.copy2(THEME, config / "themes" / THEME.name)
         import os
         env = os.environ.copy()
-        env.update({"BAT_CONFIG_DIR": str(config), "XDG_CACHE_HOME": str(cache)})
+        env.update({
+            "BAT_CONFIG_DIR": str(config),
+            "XDG_CACHE_HOME": str(cache),
+            "COLORTERM": "truecolor",
+            "TERM": "xterm-256color",
+        })
         run([executable, "cache", "--build"], env)
         themes = run([executable, "--list-themes"], env).stdout.splitlines()
         if "Apollo" not in themes:
