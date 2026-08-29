@@ -12,72 +12,94 @@
 </p>
 
 <p align="center">
-  <a href="https://apollo-theme.github.io/#app-bat"><img src="https://raw.githubusercontent.com/apollo-theme/apollo-theme.github.io/main/previews/bat.svg" alt="Simulated bat Apollo Theme preview"></a>
+  <a href="https://apollo-theme.github.io/#app-bat"><img src="https://raw.githubusercontent.com/apollo-theme/apollo-theme.github.io/main/previews/bat.svg" alt="Simulated bat Apollo Dark preview"></a>
+  <a href="https://apollo-theme.github.io/#app-bat-light"><img src="https://raw.githubusercontent.com/apollo-theme/apollo-theme.github.io/main/previews/bat-light.svg" alt="Simulated bat Apollo Light preview"></a>
 </p>
 <p align="center"><em>Simulated preview. Syntax grammar, terminal, and font rendering may vary.</em></p>
 
-Apollo ships as a standalone `Apollo.tmTheme` for bat. Its mappings distinguish common syntax, markup, and diff scopes while leaving your bat configuration untouched until you explicitly select the theme.
+Apollo ships standalone `Apollo.tmTheme` (Dark) and `Apollo Light.tmTheme` themes for bat. Their mappings distinguish common syntax, markup, and diff scopes while leaving your bat configuration untouched until you explicitly select a theme.
 
 ## Install
 
-Clone the repository, then copy the theme only when the destination is unused. The marker records ownership so uninstall can distinguish this copy from a pre-existing theme:
+Clone the repository, then copy each theme only when that destination is unused. The ownership ledger records the name and exact installed hash of files this clone created; pre-existing themes are never overwritten or claimed:
 
 ```sh
 git clone https://github.com/apollo-theme/bat-apollo-theme "$HOME/.config/bat-apollo-theme"
+clone_dir="$HOME/.config/bat-apollo-theme"
 theme_dir="$(bat --config-dir)/themes"
-marker="$HOME/.config/bat-apollo-theme/.installed-theme-path"
+marker="$clone_dir/.installed-theme-hashes"
+installed=0
 mkdir -p "$theme_dir"
-if [ -e "$theme_dir/Apollo.tmTheme" ]; then
-  printf '%s\n' 'Apollo.tmTheme already exists; nothing was overwritten.'
-else
-  cp "$HOME/.config/bat-apollo-theme/Apollo.tmTheme" "$theme_dir/Apollo.tmTheme"
-  printf '%s\n' "$theme_dir/Apollo.tmTheme" > "$marker"
-  bat cache --build
-fi
+touch "$marker"
+for name in 'Apollo.tmTheme' 'Apollo Light.tmTheme'; do
+  source_theme="$clone_dir/$name"
+  installed_theme="$theme_dir/$name"
+  if [ -e "$installed_theme" ]; then
+    printf '%s\n' "$name already exists; nothing was overwritten."
+  else
+    cp "$source_theme" "$installed_theme"
+    hash="$(shasum -a 256 "$installed_theme" | cut -d ' ' -f 1)"
+    grep -F -v "$(printf '%s\t' "$name")" "$marker" > "$marker.tmp" || true
+    mv "$marker.tmp" "$marker"
+    printf '%s\t%s\n' "$name" "$hash" >> "$marker"
+    installed=1
+  fi
+done
+[ "$installed" -eq 0 ] || bat cache --build
 ```
 
 ## Activate
 
-Use Apollo for one command:
+Use either variant for one command:
 
 ```sh
 BAT_THEME=Apollo bat path/to/file
+BAT_THEME='Apollo Light' bat path/to/file
 ```
 
-Or opt in for the current shell with `export BAT_THEME=Apollo`. No bat config file is edited.
+Or opt in for the current shell with `export BAT_THEME=Apollo` or `export BAT_THEME='Apollo Light'`. No bat config file is edited.
 
 ## Uninstall
 
-The uninstall guard removes the installed theme only when this clone recorded the expected destination and the file still matches the clone. A theme that is unowned, moved, or modified is preserved.
+The uninstall guard considers only the two expected names recorded by this clone, and removes a file only if its current hash still matches the recorded installation hash. Pre-existing, unrecorded, moved, or modified themes are preserved. The cache is rebuilt once if at least one owned file is removed.
 
 ```sh
 clone_dir="$HOME/.config/bat-apollo-theme"
-marker="$clone_dir/.installed-theme-path"
+theme_dir="$(bat --config-dir)/themes"
+marker="$clone_dir/.installed-theme-hashes"
+removed=0
 if [ -f "$marker" ]; then
-  installed_theme="$(cat "$marker")"
-  expected_theme="$(bat --config-dir)/themes/Apollo.tmTheme"
-  if [ "$installed_theme" = "$expected_theme" ] &&
-     cmp -s "$installed_theme" "$clone_dir/Apollo.tmTheme"; then
-    rm -f "$installed_theme"
-    bat cache --build
-  else
-    printf '%s\n' 'Apollo.tmTheme was not installed by this clone or has changed; it was preserved.'
-  fi
+  while IFS="$(printf '\t')" read -r name expected_hash; do
+    case "$name" in
+      'Apollo.tmTheme'|'Apollo Light.tmTheme') ;;
+      *) printf '%s\n' "Unknown ownership entry $name; it was preserved."; continue ;;
+    esac
+    installed_theme="$theme_dir/$name"
+    [ -f "$installed_theme" ] || continue
+    actual_hash="$(shasum -a 256 "$installed_theme" | cut -d ' ' -f 1)"
+    if [ "$actual_hash" = "$expected_hash" ]; then
+      rm -- "$installed_theme"
+      removed=1
+    else
+      printf '%s\n' "$name has changed; it was preserved."
+    fi
+  done < "$marker"
 fi
+[ "$removed" -eq 0 ] || bat cache --build
 unset BAT_THEME
 rm -rf "$clone_dir"
 ```
 
 ## Visual check
 
-Render a small Python sample without paging or decorations:
+Render a small Python sample without paging or decorations, selecting `Apollo` or `Apollo Light`:
 
 ```sh
 printf '%s\n' 'def hello(name):' '    return "hello " + name' |
-  bat --language=Python --style=plain --color=always --theme=Apollo
+  bat --language=Python --style=plain --color=always --theme='Apollo Light'
 ```
 
-The keyword should be blue, function gold, parameter magenta, string green, and ordinary text warm beige.
+Use Apollo Light with a light terminal background. In either variant, syntax roles should remain distinct and readable.
 
 ## Development
 
