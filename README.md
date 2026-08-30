@@ -17,7 +17,7 @@
 </p>
 <p align="center"><em>Simulated preview. Syntax grammar, terminal, and font rendering may vary.</em></p>
 
-Apollo ships standalone `Apollo.tmTheme` (Dark) and `Apollo Light.tmTheme` themes for bat. Their mappings distinguish common syntax, markup, and diff scopes while leaving your bat configuration untouched until you explicitly select a theme.
+Apollo Dark preserves the existing `Apollo.tmTheme`, `BAT_THEME=Apollo`, and `Apollo` selector for compatibility. Apollo Light is its explicit light companion in `Apollo Light.tmTheme` and the `Apollo Light` selector. Both themes distinguish common syntax, markup, and diff scopes while leaving your bat configuration untouched until you explicitly select one.
 
 ## Install
 
